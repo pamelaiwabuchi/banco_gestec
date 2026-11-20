@@ -4,6 +4,7 @@ Trabalho da disciplina de BDR (FATEC), usando o tema do projeto API **SGOS / Ges
 (Sistema de Gestão de Ordens de Serviço). Não faz parte do repositório oficial da equipe.
 
 👉 **Para rodar na sua máquina, siga o guia [COMO_RODAR.md](COMO_RODAR.md).**
+👉 **Checklist completo do trabalho (o que rodar e quais prints tirar): [PASSO_A_PASSO.md](PASSO_A_PASSO.md).**
 
 ## Estrutura
 
@@ -12,9 +13,12 @@ Trabalho da disciplina de BDR (FATEC), usando o tema do projeto API **SGOS / Ges
 | `BDR-22-10-2026 - 3a. avaliação 1.pdf` | Enunciado da avaliação |
 | `scripts/01_create_tables.sql` | Criação das 15 tabelas (DDL) |
 | `scripts/02_inserts.sql` | Dados fictícios: 50+ registros por tabela (DML) |
-| `scripts/03_programacao.sql` | *(em andamento)* Procedures, functions, triggers e views |
-| `sgos-mysql/` | Sistema SGOS adaptado para MySQL — Parte 5 (conexão da API ao banco) |
+| `scripts/03_programacao.sql` | 6 functions, 6 procedures, 6 triggers e 3 views |
+| `scripts/04_testes.sql` | Chamadas de teste de cada objeto (para os prints) |
+| `dicionario_de_dados.md` | Dicionário de dados (Parte 4) |
+| `sgos-mysql/` | Sistema SGOS adaptado para MySQL — Parte 5: registro de horas (US#2.7) usando `sp_registrar_horas` e `fn_total_horas_os` |
 | `COMO_RODAR.md` | Passo a passo para montar o banco e rodar o sistema |
+| `PASSO_A_PASSO.md` | Checklist do trabalho e lista de prints |
 
 ## Modelos
 

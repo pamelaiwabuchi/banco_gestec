@@ -5,6 +5,7 @@
 
 import { Router, type Request, type Response } from 'express';
 import { controllerOrdemServico } from '../controllers/controllerOrdemServico';
+import { controllerApontamento } from '../controllers/controllerApontamento';
 import { autorizar } from '../middlewares/authMiddleware';
 
 const router = Router();
@@ -19,6 +20,11 @@ const somenteGestor = autorizar('gestor');
 
 // GET ALL — qualquer usuário autenticado (o `autenticar` global já é aplicado no app.ts)
 router.get('/', (req: Request, res: Response) => controllerOrdemServico.getAll(req, res));
+
+// US#2.7 — horas trabalhadas (procedure sp_registrar_horas + function fn_total_horas_os).
+// Qualquer usuário autenticado consulta; quem pode lançar é validado pela procedure no banco.
+router.get('/:id/horas', (req: Request, res: Response) => controllerApontamento.listar(req, res));
+router.post('/:id/horas', (req: Request, res: Response) => controllerApontamento.registrar(req, res));
 
 // GET HISTORICO
 router.get('/:id/historico', (req: Request, res: Response) =>

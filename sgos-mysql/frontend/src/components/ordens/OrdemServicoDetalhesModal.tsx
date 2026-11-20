@@ -15,6 +15,7 @@ import {
     STATUS_LABELS,
     TIPO_LABELS,
 } from "../../utils/ordemServicoUtils";
+import { apontamentoService, type HorasDaOrdem } from "../../services/apontamento";
 
 type OrdemComSla = OrdemServico & { data_limite_sla?: string | null };
 
@@ -124,6 +125,19 @@ function paraInputData(data: string | null | undefined): string {
     return data.slice(0, 10);
 }
 
+/** Data de hoje (fuso local) no formato AAAA-MM-DD, para o campo de lançamento de horas. */
+function hojeISO(): string {
+    const hoje = new Date();
+    const doisDigitos = (valor: number) => String(valor).padStart(2, "0");
+    return `${hoje.getFullYear()}-${doisDigitos(hoje.getMonth() + 1)}-${doisDigitos(hoje.getDate())}`;
+}
+
+/** "2026-11-20T00:00:00.000Z" -> "20/11/2026" (data_trabalho é DATE, sem fuso). */
+function formatarDataTrabalho(data: string): string {
+    const [ano, mes, dia] = data.slice(0, 10).split("-");
+    return `${dia}/${mes}/${ano}`;
+}
+
 function OrdemServicoDetalhesModal({
     aberto,
     modoPagina = false,
@@ -183,14 +197,62 @@ function OrdemServicoDetalhesModal({
         { id: 1, iniciais: "MC", autor: "Mariana Costa", quando: "Hoje, 08:52", texto: "O cliente confirmou a janela para execução entre 9h e 16h. Avisem por aqui quando o teste de conectividade começar.", tom: "azul" },
         { id: 2, iniciais: "AL", autor: "André Lima", quando: "Hoje, 09:04", texto: "Instalação física iniciada. Todos os equipamentos foram conferidos, sem divergências no recebimento.", tom: "verde" },
     ]);
-    const [horasDemo, setHorasDemo] = useState([
-        { id: 1, horas: 3.5, descricao: "Diagnóstico e instalação em campo", quando: "Hoje, 09:42", autor: "André Lima" },
-        { id: 2, horas: 1, descricao: "Preparação do local e equipamentos", quando: "Hoje, 10:15", autor: "André Lima" },
-        { id: 3, horas: 1, descricao: "Testes de conectividade", quando: "Hoje, 11:15", autor: "André Lima" },
-    ]);
+    // US#2.7 — horas trabalhadas, gravadas no banco pela procedure sp_registrar_horas;
+    // o total vem da function fn_total_horas_os.
+    // Guardado junto com o id da O.S.: ao trocar de O.S., a lista antiga não aparece.
+    const [horasDaOrdem, setHorasDaOrdem] = useState<HorasDaOrdem | null>(null);
+    const horasDestaOrdem = horasDaOrdem !== null && horasDaOrdem.os_id === ordem?.id ? horasDaOrdem : null;
+    const apontamentos = horasDestaOrdem?.apontamentos ?? [];
+    const totalHorasRegistradas = horasDestaOrdem?.total_horas ?? 0;
     const [lancarHorasAberto, setLancarHorasAberto] = useState(false);
+    const [dataHoras, setDataHoras] = useState(hojeISO);
     const [horasDigitadas, setHorasDigitadas] = useState("1");
     const [descricaoHoras, setDescricaoHoras] = useState("");
+    const [erroHoras, setErroHoras] = useState<string | null>(null);
+    const [enviandoHoras, setEnviandoHoras] = useState(false);
+
+    // Carrega as horas da O.S. aberta.
+    useEffect(() => {
+        if (!aberto || !ordem?.id) return;
+        let cancelado = false;
+        apontamentoService
+            .listar(ordem.id)
+            .then((resposta) => {
+                if (!cancelado) setHorasDaOrdem(resposta);
+            })
+            .catch(() => {
+                // Sem horas carregadas, a aba mostra "Nenhuma hora registrada".
+            });
+        return () => {
+            cancelado = true;
+        };
+    }, [aberto, ordem?.id]);
+
+    async function registrarHoras() {
+        if (!ordem || enviandoHoras) return;
+        const quantidade = Number(horasDigitadas);
+        if (!Number.isFinite(quantidade) || quantidade <= 0 || quantidade > 24) return;
+
+        setEnviandoHoras(true);
+        setErroHoras(null);
+        try {
+            const resposta = await apontamentoService.registrar(ordem.id, {
+                data_trabalho: dataHoras,
+                duracao_minutos: Math.round(quantidade * 60),
+                descricao: descricaoHoras.trim() || undefined,
+            });
+            setHorasDaOrdem(resposta);
+            setAbaAcompanhamento("horas");
+            setLancarHorasAberto(false);
+            setDescricaoHoras("");
+            setHorasDigitadas("1");
+        } catch (erro) {
+            // Mensagens de regra vêm da procedure/trigger do banco (ex.: data futura, O.S. concluída).
+            setErroHoras(erro instanceof Error ? erro.message : "Não foi possível registrar as horas.");
+        } finally {
+            setEnviandoHoras(false);
+        }
+    }
 
     const prazoAtual = paraInputData((ordem as OrdemComSla | null)?.data_limite_sla);
     const statusEditaveis = useMemo<StatusOrdemServico[]>(
@@ -217,6 +279,8 @@ function OrdemServicoDetalhesModal({
         setResponsavelPainelAberto(false);
         setComentarioNovo("");
         setLancarHorasAberto(false);
+        setErroHoras(null);
+        setDataHoras(hojeISO());
         envioEmAndamento.current = false;
     }, [aberto, ordem?.id]);
 
@@ -438,9 +502,9 @@ function OrdemServicoDetalhesModal({
     const projetoAtual = ordem?.projeto_id
         ? projetos.find((item) => item.id === ordem.projeto_id)
         : undefined;
-    const horasRegistradasDemo = horasDemo.reduce((soma, item) => soma + item.horas, 0);
+    const horasRegistradas = totalHorasRegistradas;
     const horasEstimadas = Math.max(1, ordem?.prazo_horas || 12);
-    const progressoHorasDemo = Math.min(100, (horasRegistradasDemo / horasEstimadas) * 100);
+    const progressoHoras = Math.min(100, (horasRegistradas / horasEstimadas) * 100);
     const responsavelOptions: AutocompleteOption[] = funcionariosElegiveis.map((funcionario) => ({
         value: funcionario.id,
         label: funcionario.nome || `Funcionário #${funcionario.id}`,
@@ -527,10 +591,10 @@ function OrdemServicoDetalhesModal({
                                 <article><span>Cliente</span><strong>{cliente?.nome || (ordem.cliente_id ? `Cliente #${ordem.cliente_id}` : "Não associado")}</strong><small>{cliente?.razao_social || "contato@altave.com.br"}</small></article>
                                 <article><span>Responsável técnico</span><strong>{responsavelAtual?.nome || (ordem.responsavel_id ? `Funcionário #${ordem.responsavel_id}` : "André Lima")}</strong><small>{responsavelAtual ? `${responsavelAtual.tipo === "tecnico" ? "Operações" : responsavelAtual.tipo} · ${responsavelAtual.ativo ? "Ativo" : "Inativo"}` : "Operações · Técnico sênior (demo)"}</small></article>
                                 <article><span>Projeto</span><strong>{projetoAtual?.nome || (ordem.projeto_id ? `Projeto #${ordem.projeto_id}` : "Infraestrutura de rede")}</strong><small>{ordem.projeto_id ? `PRJ-${String(ordem.projeto_id).padStart(4, "0")}-008` : "Informação de demonstração"}</small></article>
-                                <article className="os-detail-time-fact"><span>Tempo registrado</span><strong>{Math.floor(horasRegistradasDemo)}h {Math.round((horasRegistradasDemo % 1) * 60)}min <small>/ {horasEstimadas}h estimadas</small></strong><div className="os-detail-progress"><span style={{ width: `${progressoHorasDemo}%` }} /></div></article>
+                                <article className="os-detail-time-fact"><span>Tempo registrado</span><strong>{Math.floor(horasRegistradas)}h {Math.round((horasRegistradas % 1) * 60)}min <small>/ {horasEstimadas}h estimadas</small></strong><div className="os-detail-progress"><span style={{ width: `${progressoHoras}%` }} /></div></article>
                             </section>
 
-                            {lancarHorasAberto && <div className="os-detail-demo-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setLancarHorasAberto(false); }}><section className="os-detail-demo-dialog" role="dialog" aria-modal="true" aria-labelledby="os-detail-hours-title"><header><div><span className="os-detail-eyebrow">REGISTRO DE EXEMPLO</span><h2 id="os-detail-hours-title">Lançar horas</h2></div><button type="button" aria-label="Fechar" onClick={() => setLancarHorasAberto(false)}>×</button></header><p>O backend do SGOS não possui lançamento de horas. Este registro é demonstrativo e ficará somente nesta tela.</p><label className="os-detail-field"><span>Horas trabalhadas</span><input type="number" min="0.25" max="24" step="0.25" value={horasDigitadas} onChange={(event) => setHorasDigitadas(event.target.value)} /></label><label className="os-detail-field"><span>Descrição</span><textarea rows={3} value={descricaoHoras} onChange={(event) => setDescricaoHoras(event.target.value)} placeholder="O que foi realizado?" /></label><footer><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setLancarHorasAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => { const quantidade = Number(horasDigitadas); if (!Number.isFinite(quantidade) || quantidade <= 0 || quantidade > 24) return; setHorasDemo((atuais) => [...atuais, { id: Date.now(), horas: quantidade, descricao: descricaoHoras.trim() || "Atividade registrada (demo)", quando: "Agora", autor: "Você" }]); setAbaAcompanhamento("horas"); setLancarHorasAberto(false); setDescricaoHoras(""); }} disabled={!Number.isFinite(Number(horasDigitadas)) || Number(horasDigitadas) <= 0 || Number(horasDigitadas) > 24}>Registrar (local)</button></footer></section></div>}
+                            {lancarHorasAberto && <div className="os-detail-demo-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setLancarHorasAberto(false); }}><section className="os-detail-demo-dialog" role="dialog" aria-modal="true" aria-labelledby="os-detail-hours-title"><header><div><span className="os-detail-eyebrow">REGISTRO DE HORAS</span><h2 id="os-detail-hours-title">Lançar horas</h2></div><button type="button" aria-label="Fechar" onClick={() => setLancarHorasAberto(false)}>×</button></header><p>Informe o dia e o tempo trabalhado nesta ordem de serviço.</p>{erroHoras && <p className="ordens-feedback ordens-feedback--error" role="alert">{erroHoras}</p>}<label className="os-detail-field"><span>Data do trabalho</span><input type="date" max={hojeISO()} value={dataHoras} onChange={(event) => setDataHoras(event.target.value)} /></label><label className="os-detail-field"><span>Horas trabalhadas</span><input type="number" min="0.25" max="24" step="0.25" value={horasDigitadas} onChange={(event) => setHorasDigitadas(event.target.value)} /></label><label className="os-detail-field"><span>Descrição</span><textarea rows={3} value={descricaoHoras} onChange={(event) => setDescricaoHoras(event.target.value)} placeholder="O que foi realizado?" /></label><footer><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => setLancarHorasAberto(false)}>Cancelar</button><button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => void registrarHoras()} disabled={enviandoHoras || !dataHoras || !Number.isFinite(Number(horasDigitadas)) || Number(horasDigitadas) <= 0 || Number(horasDigitadas) > 24}>{enviandoHoras ? "Registrando..." : "Registrar"}</button></footer></section></div>}
 
                             <div className="os-detail-content-grid">
                                 <div className="os-detail-primary-column">
@@ -538,11 +602,11 @@ function OrdemServicoDetalhesModal({
                                         <header className="os-detail-card-heading"><div><h2>Acompanhamento da ordem</h2><p>Histórico de atividades e atualizações</p></div><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => { comentarioRef.current?.focus(); document.querySelector(".os-detail-comments-card")?.scrollIntoView({ block: "nearest", behavior: "smooth" }); }}><i className="fa-solid fa-plus" aria-hidden="true" /> Adicionar atualização</button></header>
                                         <div className="os-detail-tabs" role="tablist" aria-label="Atividades da ordem">
                                             <button type="button" role="tab" aria-selected={abaAcompanhamento === "historico"} className={abaAcompanhamento === "historico" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("historico")}>Histórico <span>API</span></button>
-                                            <button type="button" role="tab" aria-selected={abaAcompanhamento === "horas"} className={abaAcompanhamento === "horas" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("horas")}>Horas registradas <span>{horasDemo.length}</span></button>
+                                            <button type="button" role="tab" aria-selected={abaAcompanhamento === "horas"} className={abaAcompanhamento === "horas" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("horas")}>Horas registradas <span>{apontamentos.length}</span></button>
                                             <button type="button" role="tab" aria-selected={abaAcompanhamento === "anexos"} className={abaAcompanhamento === "anexos" ? "ativo" : ""} onClick={() => setAbaAcompanhamento("anexos")}>Anexos <span>{anexos.length}</span></button>
                                         </div>
                                         {abaAcompanhamento === "historico" && <div className="os-detail-history-content"><OrdemServicoHistorico osId={ordem.id} usarFallbackDemonstrativo /></div>}
-                                        {abaAcompanhamento === "horas" && <div className="os-detail-timeline-list">{horasDemo.slice().reverse().map((item) => <article key={item.id} className="os-detail-timeline-item"><span className="os-detail-timeline-icon os-detail-timeline-icon--violet"><i className="fa-regular fa-clock" aria-hidden="true" /></span><div><strong>{item.horas.toLocaleString("pt-BR")}h · {item.descricao}</strong><p>Registro demonstrativo local · {item.quando} · {item.autor}</p></div></article>)}<p className="os-detail-demo-note">Horas de demonstração; ainda não são persistidas no SGOS.</p></div>}
+                                        {abaAcompanhamento === "horas" && <div className="os-detail-timeline-list">{apontamentos.length === 0 ? <p className="os-detail-demo-note">Nenhuma hora registrada nesta O.S.</p> : apontamentos.map((item) => <article key={item.id} className="os-detail-timeline-item"><span className="os-detail-timeline-icon os-detail-timeline-icon--violet"><i className="fa-regular fa-clock" aria-hidden="true" /></span><div><strong>{(item.duracao_minutos / 60).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}h · {item.descricao || "Atividade registrada"}</strong><p>{formatarDataTrabalho(item.data_trabalho)} · {item.funcionarios.nome}</p></div></article>)}</div>}
                                         {abaAcompanhamento === "anexos" && <div className="os-detail-attachments-content">{carregandoAnexos ? <p role="status">Carregando anexos…</p> : erroAnexos ? <p role="alert">{erroAnexos}</p> : anexos.length === 0 ? <div className="os-detail-empty"><i className="fa-regular fa-file-lines" aria-hidden="true" /><strong>Nenhum anexo registrado</strong><span>Adicione arquivos para consultar nesta seção.</span></div> : <ul>{anexos.map((anexo) => <li key={anexo.id}><i className="fa-regular fa-file-lines" aria-hidden="true" /><span><strong>{anexo.nome}</strong><small>{anexo.autor || "Usuário"}{anexo.data_envio ? ` · ${formatarData(anexo.data_envio)}` : ""}</small></span><button type="button" className="os-detail-btn os-detail-btn--secondary" onClick={() => void baixarAnexo(anexo)}>Baixar</button></li>)}</ul>}<button type="button" className="os-detail-btn os-detail-btn--primary" onClick={() => setAnexoAberto(true)}><i className="fa-solid fa-paperclip" aria-hidden="true" /> Anexar arquivo</button></div>}
                                     </section>
 

@@ -85,7 +85,8 @@ arquivo → rode o script **inteiro** com **`Alt+X`** (não use `Ctrl+Enter`, qu
 |---|---|---|
 | 1 | `scripts/01_create_tables.sql` | Cria as 15 tabelas, chaves e restrições |
 | 2 | `scripts/02_inserts.sql` | Insere os dados (no final mostra a contagem por tabela) |
-| 3 | `scripts/03_programacao.sql` | Procedures, functions, triggers e views *(quando estiver pronto)* |
+| 3 | `scripts/03_programacao.sql` | Procedures, functions, triggers e views |
+| 4 | `scripts/04_testes.sql` | Um teste por item — rode **um bloco por vez** (ver [PASSO_A_PASSO.md](PASSO_A_PASSO.md)) |
 
 Depois clique com o botão direito na conexão → **Atualizar** (`F5`) para ver as tabelas.
 
