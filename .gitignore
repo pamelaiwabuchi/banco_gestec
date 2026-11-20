@@ -1,0 +1,12 @@
+# Repositório oficial da equipe (tem o próprio git ligado ao GitHub Team-GesTec) — nunca versionar aqui
+sistema-ordens-servico/
+
+# Dependências e arquivos gerados
+node_modules/
+dist/
+**/src/prisma/generated/
+
+# Segredos
+.env
+.env.*
+!.env.example
