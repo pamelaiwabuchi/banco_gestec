@@ -4,9 +4,9 @@
 
 **Projeto SGOS / GesTec** — Sistema de Gestão de Ordens de Serviço (banco de dados em MySQL)
 
-- **Alunos:** [nome 1] e [nome 2]
-- **Turma:** [turma]
-- **Professor:** [nome do professor]
+- **Alunos:** Marina Duque e Pamela Iwabuchi
+- **Turma:** 2DSM
+- **Professor:** Juliana Pasquini
 - **Data de entrega:** 23/11/2026
 - **Repositório:** https://github.com/pamelaiwabuchi/banco_gestec
 

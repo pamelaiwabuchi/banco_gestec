@@ -15,9 +15,9 @@ const path = require("path");
 
 // ======================= EDITE AQUI (capa) =======================
 const CAPA = {
-  alunos: "[nome 1] e [nome 2]",
-  turma: "[turma]",
-  professor: "[nome do professor]",
+  alunos: "Marina Duque e Pamela Iwabuchi",
+  turma: "2DSM",
+  professor: "Juliana Pasquini",
   data: "23/11/2026",
 };
 // =================================================================

@@ -3,6 +3,7 @@
 Trabalho da disciplina de BDR (FATEC), usando o tema do projeto API **SGOS / GesTec**
 (Sistema de Gestão de Ordens de Serviço). Não faz parte do repositório oficial da equipe.
 
+👉 **Relatório completo do trabalho: [docs/RELATORIO.md](docs/RELATORIO.md).**
 👉 **Para rodar na sua máquina, siga o guia [COMO_RODAR.md](COMO_RODAR.md).**
 👉 **Checklist completo do trabalho (o que rodar e quais prints tirar): [PASSO_A_PASSO.md](PASSO_A_PASSO.md).**
 
@@ -19,6 +20,7 @@ Trabalho da disciplina de BDR (FATEC), usando o tema do projeto API **SGOS / Ges
 | `sgos-mysql/` | Sistema SGOS adaptado para MySQL — Parte 5: registro de horas (US#2.7) usando `sp_registrar_horas` e `fn_total_horas_os` |
 | `COMO_RODAR.md` | Passo a passo para montar o banco e rodar o sistema |
 | `PASSO_A_PASSO.md` | Checklist do trabalho e lista de prints |
+| `docs/RELATORIO.md` | Relatório completo: problema, código e print de cada item |
 
 ## Modelos
 
