@@ -36,10 +36,7 @@ Abra `scripts/04_testes.sql` e rode **um bloco por vez, na ordem, sempre na mesm
 | F1 a F6 | 6 prints, um de cada function |
 | V1 a V3 | 3 prints, um de cada view |
 | P1, P3, P4, P2, P5, P6 | 6 prints, um de cada procedure (P1 cria a O.S. usada em P3, P4 e P2) |
-| T3, T4, T5, T6 | 4 prints. T3, T5 e T6 mostram uma **mensagem de erro** — é o trigger bloqueando, então está certo |
-
-**T1 e T2 não têm bloco próprio:** o print de P1 mostra o prazo (`data_limite_sla`) calculado pelo T1, e os prints de
-P3 e P2 mostram `data_inicio` e `data_fim` preenchidas pelo T2.
+| T1 a T6 | 6 prints, um de cada trigger. T3, T5 e T6 mostram uma **mensagem de erro** — é o trigger bloqueando, então está certo |
 
 No documento, para cada item: **problema** (é o comentário acima de cada objeto no `03_programacao.sql`),
 **código** (copie do `03_programacao.sql`) e **print**.
@@ -124,7 +121,7 @@ Sugestão de estrutura:
 3. **Parte 1 — Modelos**
    - Modelo conceitual — ⚠️ o enunciado pede **BRModelo**. O de vocês está no Lucid (notação de Chen); confirme com o
      professor se pode ser do Lucid ou redesenhe no BRModelo.
-   - Modelo lógico — exporte do Lucid ("GesTec – Modelo Lógico", já atualizado para MySQL) como imagem.
+   - Modelo lógico — use a imagem "GesTec – Modelo Lógico (MySQL).png" (exportada do Lucid).
 4. **Parte 2 — DML** — explique a carga (dados fictícios, 50+ por tabela, exceções: `sla_config`, `departamentos`,
    `travas`), cite o arquivo `02_inserts.sql` e coloque o PRINT DML-1.
 5. **Parte 3 — Programação** — para cada item (6 functions, 6 procedures, 6 triggers e as 3 views): problema, código, print.

@@ -24,7 +24,7 @@ Trabalho da disciplina de BDR (FATEC), usando o tema do projeto API **SGOS / Ges
 
 ## Modelos
 
-- Modelo lógico e conceitual: no Lucidchart ("GesTec – Modelo Lógico" e "GesTec – Modelo Conceitual (Chen)").
+- Modelo lógico e conceitual: no Lucidchart ("GesTec – Modelo Lógico (MySQL)" e "GesTec – Modelo Conceitual (Chen)"); imagens exportadas na raiz do repositório.
 
 ## Tabelas com menos de 50 registros (exceções permitidas)
 
